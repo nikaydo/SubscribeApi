@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  build:
+    desc: "Собрать проект"
+    cmds:
+      - go build -o reviewApp cmd/main.go
+
+  migr:
+    desc: "Сделать миграцию"
+    cmds:
+      - |
+        read -p "Введите название миграции: " name && \
+        goose -dir migrations create "$name" sql
+  migr_up:
+    desc: "Сделать миграцию"
+    cmds:
+      - goose -dir migrations postgres "postgres://user:password@localhost:5432/subs?sslmode=disable" up
+  migr_down:
+    desc: "Сделать миграцию"
+    cmds:
+      - goose -dir migrations postgres "postgres://user:password@localhost:5432/subs?sslmode=disable" down
