@@ -7,13 +7,12 @@ import (
 	"main/internal/models"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DatabaseInterface interface {
 	Subscribe(sub models.Subscribe) (int, error)
-	DeleteSubscribe(id int) error
+	DeleteSubscribe(id uint) error
 	UpdateSubscribe(sub models.Subscribe) error
 	GetSubscribe(f models.Filters) ([]models.Subscribe, error)
 }
@@ -45,7 +44,7 @@ func (db *Database) Subscribe(Sub models.Subscribe) (int, error) {
 	return id, nil
 }
 
-func (db *Database) DeleteSubscribe(id int) error {
+func (db *Database) DeleteSubscribe(id uint) error {
 	_, err := db.Pool.Exec(context.Background(), `DELETE FROM subscriptions WHERE id = $1`, id)
 	if err != nil {
 		return err
@@ -58,8 +57,8 @@ func (db *Database) UpdateSubscribe(sub models.Subscribe) error {
 		sub.ServiceName,
 		sub.Price,
 		sub.UserId,
-		sub.StartDate,
-		sub.EndDate,
+		sub.Date.StartDate,
+		sub.Date.EndDate,
 		sub.Id)
 	if err != nil {
 		return err
@@ -68,9 +67,38 @@ func (db *Database) UpdateSubscribe(sub models.Subscribe) error {
 }
 func (db *Database) GetSubscribe(f models.Filters) ([]models.Subscribe, error) {
 	var subs []models.Subscribe
-	var rows pgx.Rows
-	var err error
 
+	query, args := makeQuery(f)
+
+	rows, err := db.Pool.Query(context.Background(), query, args...)
+
+	if err != nil {
+		return subs, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var sub models.Subscribe
+		if err := rows.Scan(
+			&sub.ServiceName,
+			&sub.Price,
+			&sub.UserId,
+			&sub.Date.StartDate,
+			&sub.Date.EndDate); err != nil {
+			return subs, err
+		}
+		if !sub.Date.EndDate.IsZero() {
+			sub.EndDate = sub.Date.EndDate.Format("01.2006")
+		}
+		if !f.Date.EndDate.IsZero() && sub.Date.EndDate.IsZero() {
+			continue
+		}
+		sub.StartDate = sub.Date.StartDate.Format("01.2006")
+		subs = append(subs, sub)
+	}
+	return subs, nil
+}
+
+func makeQuery(f models.Filters) (string, []any) {
 	query := `SELECT serviceName, price, userID, startDate, endDate FROM subscriptions WHERE 1=1`
 	args := []any{}
 	i := 1
@@ -98,27 +126,5 @@ func (db *Database) GetSubscribe(f models.Filters) ([]models.Subscribe, error) {
 		args = append(args, f.Date.EndDate)
 		i++
 	}
-	rows, err = db.Pool.Query(context.Background(), query, args...)
-
-	if err != nil {
-		return subs, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var sub models.Subscribe
-		if err := rows.Scan(
-			&sub.ServiceName,
-			&sub.Price,
-			&sub.UserId,
-			&sub.Date.StartDate,
-			&sub.Date.EndDate); err != nil {
-			return subs, err
-		}
-		if !sub.Date.EndDate.IsZero() {
-			sub.EndDate = sub.Date.EndDate.Format("01.2006")
-		}
-		sub.StartDate = sub.Date.StartDate.Format("01.2006")
-		subs = append(subs, sub)
-	}
-	return subs, nil
+	return query, args
 }

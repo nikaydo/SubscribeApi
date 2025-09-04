@@ -3,12 +3,18 @@ package main
 import (
 	"fmt"
 	"log"
+	_ "main/docs"
 	"main/internal/config"
 	"main/internal/database"
 	"main/internal/handlers"
 	"net/http"
 )
 
+// @title Subscriptions API
+// @version 1.0
+// @description CRUDL API for managing subscriptions
+// @host localhost:8080
+// @BasePath /
 func main() {
 	e, err := config.ReadEnv()
 	if err != nil {
@@ -23,7 +29,6 @@ func main() {
 	mux := http.NewServeMux()
 	handlers.HandlersInit(&db, e, mux)
 	http.ListenAndServe(fmt.Sprintf("%s:%s", e.Host, e.Port), loggingMiddleware(mux))
-
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {

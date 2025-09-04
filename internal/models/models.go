@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"time"
 
@@ -25,6 +26,10 @@ type Date struct {
 
 type Summary struct {
 	Symmary int `json:"summary"`
+}
+
+type Id struct {
+	Id uint `json:"id"`
 }
 
 func ParseResponse(b io.Reader) (Subscribe, error) {
@@ -69,31 +74,37 @@ type Filters struct {
 	Summary     bool      `json:"summary"`
 }
 
-func ParseFilters(b io.Reader) (Filters, error) {
-	var parsVar Filters
-	if err := json.NewDecoder(b).Decode(&parsVar); err != nil {
-		return parsVar, err
-	}
+func (f Filters) ParseFilters() (Filters, error) {
 	var err error
-	if parsVar.StartDate != "" {
-		parsVar.Date.StartDate, err = time.Parse("02.01.2006", "01."+parsVar.StartDate)
+
+	if err := f.Check(); err != nil {
+		return f, err
+	}
+	if f.StartDate != "" {
+		f.Date.StartDate, err = time.Parse("02.01.2006", "01."+f.StartDate)
 		if err != nil {
-			return parsVar, err
+			return f, err
 		}
-		if parsVar.Date.StartDate.Before(time.Now()) {
-			return parsVar, err
+		if f.Date.StartDate.Before(time.Now()) {
+			return f, err
 		}
 	}
 
-	if parsVar.EndDate != "" {
-		parsVar.Date.EndDate, err = time.Parse("02.01.2006", "01."+parsVar.EndDate)
+	if f.EndDate != "" {
+		f.Date.EndDate, err = time.Parse("02.01.2006", "01."+f.EndDate)
 		if err != nil {
-			return parsVar, err
+			return f, err
 		}
-		if parsVar.Date.EndDate.After(time.Now()) {
-			return parsVar, err
+		if f.Date.EndDate.After(time.Now()) {
+			return f, err
 		}
 	}
+	return f, nil
+}
 
-	return parsVar, nil
+func (f *Filters) Check() error {
+	if f.ServiceName == "" && f.EndDate == "" && f.StartDate == "" && f.UserId == uuid.Nil {
+		return errors.New("need chose filter")
+	}
+	return nil
 }
