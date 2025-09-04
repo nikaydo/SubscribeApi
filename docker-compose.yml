@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: subs
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  api:
+    build: .
+    env_file:
+      - .env.docker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    restart: on-failure
+    command: >
+      sh -c "goose -dir /migrations postgres postgres://user:password@db:5432/subs?sslmode=disable up && /app/subs"
+volumes:
+  db-data:

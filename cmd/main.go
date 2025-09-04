@@ -18,16 +18,17 @@ import (
 func main() {
 	e, err := config.ReadEnv()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	db, err := database.InitBD(e)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	mux := http.NewServeMux()
 	handlers.HandlersInit(&db, e, mux)
+	log.Println("Server run on: ", e.Host, ":", e.Port)
 	http.ListenAndServe(fmt.Sprintf("%s:%s", e.Host, e.Port), loggingMiddleware(mux))
 }
 
