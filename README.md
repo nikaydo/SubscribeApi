@@ -69,31 +69,11 @@ RESTful API для управления подписками пользоват�
 }
 ```
 
-### Удалить подписку
-
-```bash
-curl -X DELETE http://localhost:8080/api/subscribe \
--H "Content-Type: application/json" \
--d '{"id": 1}'
-```
-
-## Установка и настройка
-
-### Развёртывание Docker
+## Развёртывание Docker
 
 1. **Запустить с помощью Docker Compose**
 ```bash
 docker-compose up -d
-```
-
-2. **Просмотр журналов**
-```bash
-docker-compose logs -f api
-```
-
-3. **Остановка служб**
-```bash
-docker-compose down
 ```
 
 ## Автоматизация задач
